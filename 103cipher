@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+# EPITECH PROJECT, 2024
+# 101 pong
+# File description:
+# xs
+# 
+
+import sys
+import math
+
+def is_int(nb):
+    try:
+        int(nb)
+        return True
+    except ValueError:
+        return False
+
+def matrix_len(key):
+    str_len = len(key)
+    matrix_size = 0;
+
+    while (matrix_size **2 < str_len):
+        matrix_size += 1;
+    return matrix_size
+
+def smallest_square_matrix(key):
+    n = matrix_len(key)
+    matrix = [[0 for a in range(n)] for _ in range(n)]
+    x = 0
+    for i in range(n):
+        for j in range(n):
+            if x < len(key):
+                matrix[i][j] = ord(key[x])
+                x += 1
+    return matrix
+
+def how_many_columns(msg, n):
+    str_len = len(msg)
+    temp = float(str_len / n)
+    columns = int(temp)
+
+    if (float(columns) < temp):
+        columns += 1
+    return columns
+
+def matrix_of_n_columns(n, msg):
+    columns = how_many_columns(msg, n)
+    matrix = [[0 for a in range(n)] for b in range(columns)]
+    x = 0
+    
+    for i in range(columns):
+        for j in range(n):
+            if x < len(msg):
+                matrix[i][j] = ord(msg[x])
+                x += 1
+    return matrix
+
+def matrix_of_n_columns_int(n, msg):
+    numbers = msg.split()
+    rows = len(numbers) // n
+    if len(numbers) % n != 0:
+        exit(84)
+
+    matrix = []
+    index = 0
+    for i in range(rows):
+        row = []
+        for j in range(n):
+            if index < len(numbers):
+                if not is_int(numbers[index]):
+                    exit(84)
+                row.append(int(numbers[index]))
+                if (numbers[index] == "0"):
+                    exit(84)
+                index += 1
+        matrix.append(row)
+
+    return matrix
+
+def print_key(key):
+    print("Key matrix:")
+    for x in range(len(key)):
+        for i in range(len(key[x])):
+            if (i != 0):
+                sys.stdout.write("\t")
+            sys.stdout.write(f"{key[x][i]}")
+        sys.stdout.write("\n")
+
+def encrypt_process(encrypted, orginal_msg, key):
+    for x in range (len(encrypted)):
+        encrypted[x] = 0
+        for i in range(len(key)):
+            encrypted[x] = encrypted[x] + orginal_msg[i] * key[i][x]
+
+
+def encrypt(msg, key):
+    key_matrix = smallest_square_matrix(key)
+    msg_matrix = matrix_of_n_columns(len(key_matrix[0]), msg)
+    encrypt_matrix = matrix_of_n_columns(len(key_matrix[0]), msg)
+
+    for x in range(len(encrypt_matrix)):
+        encrypt_process(encrypt_matrix[x], msg_matrix[x], key_matrix)
+    for x in range(len(encrypt_matrix)):
+        for i in range(len(encrypt_matrix[x])):
+            if (x == 0 and i == 0):
+                x = x
+            else:
+                sys.stdout.write(" ")
+            sys.stdout.write(f"{encrypt_matrix[x][i]}")
+    sys.stdout.write(f"\n")
+
+import numpy as np
+
+def determinant(matrix):
+    n = len(matrix)
+    if n == 1:
+        return matrix[0][0]
+    if n == 2:
+        return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]
+    
+    det = 0
+    for i in range(n):
+        sub_matrix = [row[:i] + row[i+1:] for row in matrix[1:]]
+        det += ((-1) ** i) * matrix[0][i] * determinant(sub_matrix)
+    return det
+
+def cofactor_matrix(matrix):
+
+    n = len(matrix)
+    cofactor_matrix = []
+    for i in range(n):
+        cofactor_row = []
+        for j in range(n):
+            sub_matrix = [row[:j] + row[j+1:] for row in matrix[:i] + matrix[i+1:]]
+            cofactor_row.append(((-1) ** (i + j)) * determinant(sub_matrix))
+        cofactor_matrix.append(cofactor_row)
+    
+    return cofactor_matrix
+
+def transpose(matrix):
+    return [list(row) for row in zip(*matrix)]
+
+def invert_matrix(matrix):
+    det = determinant(matrix)
+    if det == 0:
+        raise ValueError("La matriz no es invertible, determinante es 0")
+    cofactor_mat = cofactor_matrix(matrix)
+    adjugate = transpose(cofactor_mat)
+
+    n = len(matrix)
+    inverse = [[adjugate[i][j] / det for j in range(n)] for i in range(n)]
+    return inverse
+
+def print_inv_key(key):
+    print("Key matrix:")
+    for x in range(len(key)):
+        for i in range(len(key[x])):
+            if (i != 0):
+                sys.stdout.write("\t")
+            if (key[x][i] == 0):
+                sys.stdout.write("0.0")
+            else:
+                sys.stdout.write("{:.3f}".format(key[x][i]))
+        sys.stdout.write("\n")
+
+def desencrypt_process(desencrypted, orginal_msg, key):
+    for x in range (len(desencrypted)):
+        temp = 0.0
+        for i in range(len(key)):
+            temp = temp + orginal_msg[i] * key[i][x]
+        nb = int(temp)
+        if ((temp - nb) * 10 > 5):
+            nb += 1
+        desencrypted[x] = nb
+
+def desencrypt(msg, key):
+    key_matrix = smallest_square_matrix(key)
+    inv_key = invert_matrix(key_matrix);
+    
+    msg_matrix = matrix_of_n_columns_int(len(key_matrix[0]), msg)
+    desencrypt_matrix = matrix_of_n_columns_int(len(key_matrix[0]), msg)
+
+    for x in range(len(desencrypt_matrix)):
+        desencrypt_process(desencrypt_matrix[x], msg_matrix[x], inv_key)
+    for x in range(len(desencrypt_matrix)):
+        for i in range(len(desencrypt_matrix[x])):
+            sys.stdout.write(f"{chr(desencrypt_matrix[x][i])}")
+    sys.stdout.write(f"\n")
+
+def cypher():
+    ac = len(sys.argv)
+    if (ac != 4):
+        sys.stderr.write("Not enough arguments\n")
+        exit(84)
+    msg = sys.argv[1]
+    key = sys.argv[2]
+    if (msg == "" or key == ""):
+        exit(84)
+    if not is_int(sys.argv[3]):
+        sys.stderr.write(f"|ERROR| '{sys.argv[3]}' have to be 0 or 1\n")
+        exit(84)
+    flag = int(sys.argv[3])
+    if (flag == 0):
+        return encrypt(msg, key)
+    if (flag == 1):
+        return desencrypt(msg, key)
+    sys.stderr.write(f"|ERROR| '{sys.argv[3]}' have to be 0 or 1\n")
+    exit(84)
+
+cypher()
